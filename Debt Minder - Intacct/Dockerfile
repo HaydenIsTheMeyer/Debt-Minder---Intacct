@@ -14,7 +14,7 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0-nanoserver-1809 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Debt Minder - Intacct/Debt Minder - Intacct.csproj", "Debt Minder - Intacct/"]
+COPY ["Debt Minder - Intacct/Debt Minder - Intacct.csproj", "Debt Minder - Intacct"]
 RUN dotnet restore "./Debt Minder - Intacct/Debt Minder - Intacct.csproj"
 COPY . .
 WORKDIR "/src/Debt Minder - Intacct"
