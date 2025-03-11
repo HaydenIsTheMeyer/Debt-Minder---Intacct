@@ -1,0 +1,52 @@
+﻿@model Debt_Minder___Intacct.Controllers.GenerateResultViewModel
+
+@{
+    ViewData["Title"] = "Generated PDFs";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generated PDFs</h1>
+        <div class="alert alert-success">
+            <strong>Selected Customers:</strong> @string.Join(", ", Model.SelectedCustomers)
+        </div>
+        <div class="alert alert-info">
+            <strong>PDFs Generated:</strong>
+            <ul>
+                @foreach (var pdf in Model.PdfFiles)
+                {
+                    <li>@pdf.FileName</li>
+                }
+            </ul>
+            <a href="@Url.Action("Index", "Home")" class="btn btn-primary">Back to Grid</a>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+        @foreach (var pdf in Model.PdfFiles)
+        {
+            @:var url = "@Url.Action("GetPdf", "Home", new { sessionKey = Model.SessionKey, fileName = pdf.FileName })";
+            @:console.log("Opening URL: " + url);
+            @:window.open(url, "_blank");
+        }
+        });
+    </script>
+</body>
+</html>

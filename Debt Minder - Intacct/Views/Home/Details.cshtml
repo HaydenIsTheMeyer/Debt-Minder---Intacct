@@ -1,0 +1,74 @@
+﻿@model Debt_Minder___Intacct.Models.CustomerDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Details for {Model.CustomerName}";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+    <!-- Bootstrap CDN for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .table {
+            width: 100%;
+            font-size: 16px;
+        }
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Heading with Customer Name -->
+        <h1>Details for @Model.CustomerName</h1>
+
+        <!-- Grid with document details -->
+        <table class="table table-striped table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>DOCNo</th>
+                    <th>DOCID</th>
+                    <th>EXTERNALREFNO</th>
+                    <th>ORIGDOCDATE</th>
+                    <th>TotalDue</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Documents != null && Model.Documents.Any())
+                {
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <tr>
+                            <td>@doc.DOCNo</td>
+                            <td>@doc.DOCID</td>
+                            <td>@doc.EXTERNALREFNO</td>
+                            <td>@doc.ORIGDOCDATE</td>
+                            <td>@doc.TotalDue</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center">No documents found for this customer.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Back button -->
+        <a href="@Url.Action("Index", "Home")" class="btn btn-primary mt-3">Back to Main Page</a>
+    </div>
+</body>
+</html>
