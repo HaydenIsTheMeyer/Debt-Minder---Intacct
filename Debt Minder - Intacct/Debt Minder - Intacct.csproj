@@ -17,9 +17,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspose.Words" Version="25.5.0" />
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.0-preview.4.25258.110" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="DM Middle Ware">
+      <HintPath>..\..\Projects\Reusable Code\DM Middle Ware\DM Middle Ware\bin\Debug\DM Middle Ware.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

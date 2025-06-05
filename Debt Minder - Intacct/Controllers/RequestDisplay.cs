@@ -140,8 +140,8 @@ namespace Debt_Minder___Intacct.Controllers
             {
                 Control = new Control
                 {
-                    Senderid = "Kiteview Tech",
-                    Password = "00@Kit3vi3w!11",
+                    Senderid = "agroserve",
+                    Password = "@Agr0s3rv3!@#",
                     Controlid = DateTime.UtcNow.ToString("yyyyMMddHHmmss"), // Timestamp as Control ID
                     Uniqueid = false,
                     Dtdversion = "3.0",
