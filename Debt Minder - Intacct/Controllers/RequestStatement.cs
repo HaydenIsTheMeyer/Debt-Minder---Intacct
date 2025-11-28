@@ -91,7 +91,7 @@ namespace Debt_Minder___Intacct.Controllers
             public int PageSize { get; set; }
         }
 
-        public static async Task CreateRequestXml(string sessionId, string customerName)
+        public static async Task CreateRequestXml(string sessionId, string customerId)
         {
             var request = new Request
             {
@@ -119,7 +119,7 @@ namespace Debt_Minder___Intacct.Controllers
                             {
                                 Object = "ARINVOICE",
                                 Fields = "CUSTOMERID, CONTACT.PRINTAS, CONTACT.MAILADDRESS.ADDRESS1, CONTACT.MAILADDRESS.ADDRESS2, CONTACT.MAILADDRESS.CITY, CONTACT.MAILADDRESS.STATE, CONTACT.MAILADDRESS.ZIP, CUSTOMER.TOTALDUE, WHENCREATED, RECORDID, TOTALENTERED, TOTALPAID, TOTALDUE, CONTACT.EMAIL1",
-                                Query = $"CUSTOMERNAME = '{customerName}' AND TOTALDUE not in (0)",
+                                Query = $"CUSTOMERID = '{customerId}' AND TOTALDUE not in (0)",
                                 PageSize = 100
                             }
                         }

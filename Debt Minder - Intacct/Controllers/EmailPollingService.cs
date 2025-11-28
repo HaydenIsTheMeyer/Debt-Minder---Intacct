@@ -42,7 +42,7 @@ namespace Debt_Minder___Intacct.Controllers
 
                     var internalRecipients = GetInternalRecipients();
                     DllInitializer.InitializeDll();
-                    var finalBody = DllInitializer.EmailEngine.GetEmailTemplate(SessionEngine.Username, "CASH", EmailEngine.LayoutType, bodyTemplate);
+                    var finalBody = DllInitializer.EmailEngine.GetEmailTemplate(SessionEngine.Username, "CASH", EmailEngine.LayoutType, bodyTemplate, "");
 
                     EmailEngine.Initialize();
                     if (internalOnly)

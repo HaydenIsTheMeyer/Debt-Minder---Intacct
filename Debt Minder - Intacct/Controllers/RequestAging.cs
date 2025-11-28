@@ -91,7 +91,7 @@ namespace Debt_Minder___Intacct.Controllers
         }
 
 
-        public static async Task CreateRequestXml(string sessionId)
+        public static async Task CreateRequestXml(string sessionId, string CustomerId)
         {
             var request = new Request
             {
@@ -118,7 +118,7 @@ namespace Debt_Minder___Intacct.Controllers
                             GetArAging = new GetArAging
                             {
                                 AgingPeriods = "-0,1-30,31-60,61-90,91-120,121-",
-                                CustomerId = "10001",
+                                CustomerId = CustomerId,
                                 ShowDetails = true
                             }
                         }

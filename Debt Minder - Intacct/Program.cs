@@ -1,5 +1,6 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
+builder.WebHost.UseStaticWebAssets();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -8,12 +9,14 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+app.UseStaticFiles();
+
 app.UseSession();
 app.UseRouting();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllerRoute(
         name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}");
+        pattern: "{controller=Home}/{action=Index2}/{id?}");
 });
 app.Run();

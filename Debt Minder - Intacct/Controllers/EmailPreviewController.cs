@@ -154,14 +154,25 @@ namespace Debt_Minder___Intacct.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveEmail(EmailPreviewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                string body = "test";// recieve body as parameter
-                DatabaseEngine.InsertEmailTemplate("Default", "Test Subject", body, true);
-                // Handle the save logic (e.g., store the email or send it)
-                // For now, redirect to a success page or back to the form
-                string resopnse = await EmailPollingService.PollForEmailsAsync(false);
-                return RedirectToAction("Index", "Home");
+                if (ModelState.IsValid)
+                {
+                    string body = model.Body;// recieve body as parameter
+                    DatabaseEngine.InsertEmailTemplate("Default", model.Subject, body, true);
+                    // Handle the save logic (e.g., store the email or send it)
+                    // For now, redirect to a success page or back to the form
+                    string resopnse = await EmailPollingService.PollForEmailsAsync(false);
+                    string message = resopnse;
+
+                    return Json(new { success = true, message = message });
+                    // return RedirectToAction("Index", "Home");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                return Json(new { success = false, message = $"Error sending emails: {ex.Message}" });
             }
             return View("EmailPreview", model);
         }
@@ -179,7 +190,7 @@ namespace Debt_Minder___Intacct.Controllers
                     {
                         try
                         {
-                            layout = DllInitializer.EmailEngine.GetEmailTemplate("Kiteview Admin", "CASH", LayoutType, Body);
+                            layout = DllInitializer.EmailEngine.GetEmailTemplate("Kiteview Admin", "CASH", LayoutType, Body, "");
                         }
                         catch (Exception ex)
                         {
@@ -192,7 +203,7 @@ namespace Debt_Minder___Intacct.Controllers
                     try
                     {
                         DllInitializer.InitializeDll();
-                        layout = DllInitializer.EmailEngine.GetEmailTemplate(SessionEngine.Username, "CASH", LayoutType, "");
+                        layout = DllInitializer.EmailEngine.GetEmailTemplate(SessionEngine.Username, "CASH", LayoutType, "", "");
                     }
                     catch (Exception ex)
                     {

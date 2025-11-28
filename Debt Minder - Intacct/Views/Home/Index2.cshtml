@@ -1,0 +1,404 @@
+﻿@model IEnumerable<Debt_Minder___Intacct.Models.HomeDisplay>
+@{
+    ViewData["Title"] = "Main Screen";
+}
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/StyleIndex.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+        
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+    <!-- Top buttons -->
+<div class="top-section">
+	<div class="button-group">
+		<button type="button" class="btn btn-primary2" id="generatePdfBtn">Generate</button>
+		<button type="button" class="btn btn-primary2" id="EmailBtn">Generate & Email</button>
+	</div>
+
+	@* Search bar *@
+	<div class="search-container">
+		<form role="search" id="form">
+			<input type="search" id="query" name="query" placeholder="Search..." autocomplete="off">
+			<button id="searchButton" type="submit"><i class="fas fa-search"></i></button>
+		</form>
+	</div>
+</div>
+
+
+<div class="filter-panel">
+
+    <div class="filter-header" onclick="toggleFilters()">
+        <span> Filters</span>
+        <span class="filter-arrow" id="filterArrow">▼</span>
+    </div>
+
+    <div class="filter-content" id="filterContent">
+        <div class="filter-grid">
+
+            <div class="filter-item">
+                <label>Date From</label>
+                <input type="date">
+            </div>
+
+            <div class="filter-item">
+                <label>Date To</label>
+                <input type="date">
+            </div>
+
+            <div class="filter-item">
+                <label>Customer Name</label>
+                <input type="text" placeholder="Enter name">
+            </div>
+
+            <div class="filter-item">
+                <label>Status</label>
+                <select>
+                    <option value="">Any</option>
+                    <option>Normal</option>
+                    <option>Overdue</option>
+                    <option>Warning</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label>Max Docs</label>
+                <input type="number" placeholder="0–99">
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- HEADER BAR OUTSIDE THE TABLE -->
+<div class="table-header-bar">
+    <div class="col checkbox-col">Select</div>
+    <div class="col">Customer Id</div>
+    <div class="col">Customer Name</div>
+    <div class="col">Total Due</div>
+    <div class="col">Doc Total</div>
+    <div class="col">No. Docs</div>
+    <div class="col">Docs</div>
+    <div class="col">Email</div>
+    <div class="col">Contacted</div>
+    <div class="col">Action</div>
+</div>
+
+    <!-- Table container -->
+    <div class="grid-container">
+        <div class="container-fluid2">
+
+            <div class="table-container2 blurred-table">
+                <table class="table table-striped table-bordered table-hover">
+
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="row-normal" data-customer-name="@item.CustomerId">
+                            <td class="checkbox-col"><input type="checkbox" class="customer-checkbox" value="@item.CustomerId" /></td>
+                            <td>@item.CustomerId</td>
+                            <td>@item.CustomerName</td>
+                            <td>@item.TotalDue.ToString("C")</td>
+                            <td>@item.DocTotal.ToString("C")</td>
+                            <td>@item.NoDocs</td>
+                            <td>...</td>
+                            <td>...</td>
+                            <td>@item.Contacted</td>
+                            <td>@item.Action</td>
+                        </tr>
+                    }
+                </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+
+<script>
+
+
+    // To highlight checked rows in table
+    $(document).on("change", ".customer-checkbox", function () {
+        const row = $(this).closest("tr");
+
+        if (this.checked) {
+            row.addClass("highlight-row");
+        } else {
+            row.removeClass("highlight-row");
+        }
+    });
+
+
+    $(document).ready(function ()
+    {
+            $('table tbody tr').each(function (index)
+            {
+                var row = $(this);
+                var total = parseFloat(row.find('td:eq(3)').text().trim().replace(/[^0-9.-]+/g, '')) || 0;
+                var docTotal = parseFloat(row.find('td:eq(4)').text().trim().replace(/[^0-9.-]+/g, '')) || 0;
+                console.log(`Row ${index}: total = ${total}, docTotal = ${docTotal}`);
+                if (total === docTotal)
+                { // Use === for strict equality
+                    console.log(`Row ${index}: Equal values2, applying color`);
+                    //row.addClass('highlight-equal');
+                }
+            });
+    });
+            // Debounce function to limit AJAX calls
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    $(document).ready(function () {
+        $("#generatePdfBtn").click(function () {
+                var selectedCustomers = [];
+            $(".customer-checkbox:checked").each(function () {
+                selectedCustomers.push($(this).val());
+            });
+            if (selectedCustomers.length === 0) {
+                alert("Please select at least one customer.");
+                return;
+            }
+            const content = selectedCustomers.join(",");
+            var url = "/Home/GeneratePdf?customerIds=" + encodeURIComponent(content);
+            window.open(url, "_blank");
+        });
+        const editor = document.getElementById('EmailBtn');
+                    // Update preview via AJAX
+    const sendEmails = debounce(function (content) {
+        $.ajax({
+            url: '@Url.Action("EmailPdf", "Home")',
+            type: 'POST',
+            data: { customers: content },
+            success: function (response) {
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                } else {
+                    console.log('No redirect URL provided.');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('AJAX error:', error);
+            }
+        });
+    }, 500);
+        // Update preview and hidden input on editor change
+        editor.addEventListener('click', function () {
+                            var selectedCustomers = [];
+            $(".customer-checkbox:checked").each(function () {
+                selectedCustomers.push($(this).val());
+            });
+            if (selectedCustomers.length === 0) {
+                alert("Please select at least one customer.");
+                return;
+            }
+            const content = selectedCustomers.join(",");
+            sendEmails(content);
+        });
+        // $("#EmailBtn").click(function ()
+        // {
+        // var selectedCustomers = [];
+        // $(".customer-checkbox:checked").each(function () {
+        // selectedCustomers.push($(this).val());
+        // });
+        // if (selectedCustomers.length === 0) {
+        // alert("Please select at least one customer.");
+        // return;
+        // }
+        // var url = "/Home/GeneratePdf?customers=" + encodeURIComponent(selectedCustomers.join(","));
+        // window.open(url, "_blank");
+        // });
+           $("tbody tr").dblclick(function (e)
+           {
+            if ($(e.target).is("input.customer-checkbox"))
+            {
+                return;
+            }
+    var customerName = $(this).closest("tr").data("customer-name");
+                var columnIndex = $(e.target).index();
+    var columnName = $(".table-header-bar .col").eq(columnIndex).text().trim();
+                if (customerName && columnName)
+            {
+                if (columnName === "Contacted") {
+                    // Dynamically create and submit a form
+                    var form = $('<form>', {
+                        action: '@Url.Action("FeedbackManager", "FeedbackManager")',
+                        method: 'POST'
+                    });
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'customerName',
+                        value: customerName
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'columnName',
+                        value: columnName
+                    }));
+                    // Append the form to the body and submit
+                    $('body').append(form);
+                    form.submit();
+                }
+                else if(columnName === "Email")
+                {
+                    // Dynamically create and submit a form
+                    var form = $('<form>', {
+                        action: '@Url.Action("Email", "Email")',
+                        method: 'POST'
+                    });
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'customerName',
+                        value: customerName
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'columnName',
+                        value: columnName
+                    }));
+                    // Append the form to the body and submit
+                    $('body').append(form);
+                    form.submit();
+                }
+                else if(columnName === "Docs")
+                {
+                                            // Dynamically create and submit a form
+                    var form = $('<form>', {
+                        action: '@Url.Action("DocumentManager", "DocumentManager")',
+                        method: 'POST'
+                    });
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'customerName',
+                        value: customerName
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'columnName',
+                        value: columnName
+                    }));
+                    // Append the form to the body and submit
+                    $('body').append(form);
+                    form.submit();
+                }
+                else
+                {
+                    // Dynamically create and submit a form
+                    var form = $('<form>', {
+                        action: '@Url.Action("Details", "Details")',
+                        method: 'POST'
+                    });
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'customerName',
+                        value: customerName
+                    }));
+                    form.append($('<input>', {
+                        type: 'hidden',
+                        name: 'columnName',
+                        value: columnName
+                    }));
+                    // Append the form to the body and submit
+                    $('body').append(form);
+                    form.submit();
+                }
+            } else {
+                console.error("Customer name or column name not found for this row.");
+            }
+            });
+    });
+
+
+        
+
+    // ---------------------------------------------
+    // Helpers: update table height using expected
+    // ---------------------------------------------
+    function updateTableHeight(expectedFilterPanelHeight) {
+        const navbar = document.querySelector('.navbar');
+        const topSection = document.querySelector('.top-section');
+        const tableHeader = document.querySelector('.table-header-bar');
+        const tableContainer = document.querySelector('.table-container2');
+
+        const navbarHeight = navbar?.offsetHeight || 0;
+        const topHeight = topSection?.offsetHeight || 0;
+        const tableHeaderHeight = tableHeader?.offsetHeight || 0;
+        const filterHeight = (typeof expectedFilterPanelHeight === 'number')
+            ? expectedFilterPanelHeight
+            : (document.querySelector('.filter-panel')?.offsetHeight || 0);
+
+        const totalOffset = navbarHeight + topHeight + filterHeight + tableHeaderHeight + 15;   
+        document.querySelector('.table-container2').style.maxHeight = `calc(100vh - ${totalOffset}px)`;
+    }
+
+    // ---------------------------------------------
+    // Toggle filters: deterministic expected heights
+    // ---------------------------------------------
+    function toggleFilters() {
+        const filterPanel = document.querySelector('.filter-panel');
+        const filterHeader = filterPanel.querySelector('.filter-header');
+        const filterContent = document.getElementById('filterContent');
+        const arrow = document.getElementById('filterArrow');
+
+        const headerHeight = filterHeader?.offsetHeight || 0;
+        const isOpen = filterContent.clientHeight > 0;
+
+        if (isOpen) {
+            // COLLAPSE: expected panel height becomes headerHeight
+            filterContent.style.maxHeight = "0px";
+            arrow.style.transform = "rotate(0deg)";
+
+            // wait for the browser to process the style change, then compute
+            requestAnimationFrame(() => {
+                // second rAF is robust cross-browser
+                requestAnimationFrame(() => {
+                    const expectedPanelHeight = headerHeight;
+                    updateTableHeight(expectedPanelHeight);
+                });
+            });
+
+        } else {
+            // EXPAND: expected panel height = header + content
+            const contentH = filterContent.scrollHeight;
+            filterContent.style.maxHeight = contentH + "px";
+            arrow.style.transform = "rotate(180deg)";
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const expectedPanelHeight = headerHeight + contentH;
+                    updateTableHeight(expectedPanelHeight);
+                });
+            });
+        }
+    }
+
+    // ---------------------------------------------
+    // Init + resize
+    // ---------------------------------------------
+    updateTableHeight(); // initial
+    window.addEventListener('resize', () => {
+        // Recompute based on current DOM; prefer to pass undefined so update reads actual.
+        updateTableHeight();
+    });
+
+
+
+
+</script>

@@ -111,6 +111,9 @@ namespace Debt_Minder___Intacct.Controllers
 
         public class SODocument
         {
+            [XmlElement("CUSTOMER.CUSTOMERID")]
+            public string CustomerId { get; set; }
+
             [XmlElement("CUSTOMER.NAME")]
             public string CustomerName { get; set; }
 

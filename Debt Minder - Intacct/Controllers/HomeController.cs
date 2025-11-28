@@ -19,6 +19,8 @@ using DM_Middle_Ware;
 using Microsoft.Win32;
 using System.Data;
 using System.Drawing;
+using Aspose.Words.Lists;
+using System.Reflection.PortableExecutable;
 
 namespace Debt_Minder___Intacct.Controllers
 {
@@ -39,9 +41,9 @@ namespace Debt_Minder___Intacct.Controllers
             _logger = logger;
         }
 
-        public static string SessionId = "_tdXdiFiRQzjeV7lHYbWGIroDOK9v-rXeqDE1YtG43le5R2G1jTPrUDj";
+        public static string SessionId = "cKJmmiycuLi2rXNH09ASANHyuLes4nCiZsdx5QsRtq1zR9PQEg-W9b62";
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index2()
         {
 
             if (res == null)
@@ -50,55 +52,78 @@ namespace Debt_Minder___Intacct.Controllers
 
             }
 
+
+            DataTable dtDebtorsContact = new DataTable();
+            dtDebtorsContact = DatabaseEngine.GetDebtorsContact();
+
+
             var groupedDocuments = res.Operation.Result.Data.SODocuments
-                .GroupBy(doc => doc.CustomerName)
+                .GroupBy(doc => doc.CustomerId)
                 .Select(group => new
                 {
-                    CustomerName = group.Key,
+                    CustomerId = group.Key,
+                    CustomerName = group.First().CustomerName,
                     TotalDueSum = group.Sum(doc => doc.TotalDue),
                     CustomerTotalDue = group.First().CustomerTotalDue,
                     NumberOfDocuments = group.Count(),
                     DocId = group.First().DOCID
+
                 });
 
-            var lines = new List<HomeDisplay>();
-            foreach (var line in groupedDocuments)
-            {
-                lines.Add(new HomeDisplay
-                {
-                    CustomerName = line.CustomerName,
-                    TotalDue = line.CustomerTotalDue,
-                    DocTotal = line.TotalDueSum,
-                    NoDocs = line.NumberOfDocuments
-                });
-            }
+            var lines = from doc in groupedDocuments
+                        join contact in dtDebtorsContact.AsEnumerable()
+                        on doc.CustomerId equals contact.Field<string>("CustomerId").ToString() into contactGroup
+                        from contact in contactGroup.DefaultIfEmpty()
 
-            return View(lines);
+                        select new HomeDisplay
+                        {
+                            CustomerId = doc.CustomerId,
+                            CustomerName = doc.CustomerName,
+                            TotalDue = doc.CustomerTotalDue,
+                            DocTotal = doc.TotalDueSum,
+                            NoDocs = doc.NumberOfDocuments,
+                            Contacted = contact != null ? contact.Field<string>("Contacted") : "",
+                            Action = contact != null ? contact.Field<string>("Action") : "",
+                            RowClass =  contact != null  && contact.Field<int>("ActionDate") == 1 
+           ? "table-danger"
+           : ""
+
+
+
+                        };
+
+
+
+            return View(lines.ToList());
         }
 
         [HttpGet]
-        public async Task<IActionResult> GeneratePdf(string customers)
+        public async Task<IActionResult> GeneratePdf(string customerIds)
         {
-            List<string> names = customers.Split(',').ToList();
-            if (names == null || names.Count < 1)
+            List<string> Custids = customerIds.Split(',').ToList();
+            if (Custids == null || Custids.Count < 1)
             {
                 return BadRequest("Invalid request parameters.");
             }
 
-            List<string> docIds = GetDocIdsByCustomers(res, names);
+            List<string> docIds = GetDocIdsByCustomers(res, Custids);
             RequestGenerate.GenerateXmlRequest(SessionId, docIds);
 
             List<pdfResponse.Result> pdfResults = Pdfres.Operation.Result;
             Dictionary<string, List<(byte[] PdfBytes, string DocId)>> customerPdfFiles = new Dictionary<string, List<(byte[], string)>>();
 
-            await RequestAging.CreateRequestXml(SessionId);
 
-            foreach (string customer in names)
+            foreach (string id in Custids)
             {
-                await RequestStatement.CreateRequestXml(SessionId, customer);
+                await RequestAging.CreateRequestXml(SessionId, id);
+
+                await RequestStatement.CreateRequestXml(SessionId, id);
+
+
+
 
                 List<(byte[], string)> pdfList = new List<(byte[], string)>();
-                List<string> ids = GetDocIdsByCustomer(res, customer);
+                List<string> ids = GetDocIdsByCustomer(res, id);
 
                 var pdfDataList2 = pdfResults
                     .Where(r => r.Data?.Sodocument != null && ids.Contains(r.Data.Sodocument.Docid))
@@ -122,7 +147,17 @@ namespace Debt_Minder___Intacct.Controllers
                     pdfList.Add((statementBytes, "Statement"));
                 }
 
-                customerPdfFiles[customer] = pdfList;
+                DataTable dtAttachments = new DataTable();
+                dtAttachments = DatabaseEngine.GetAttachments(id);
+
+                foreach (DataRow row in dtAttachments.Rows)
+                {
+                    byte[] FileData = (byte[])row["FileData"];
+                    string FileName = row["FileName"].ToString();
+                    pdfList.Add((FileData, FileName));
+                }
+
+                customerPdfFiles[id] = pdfList;
             }
 
             // Create a ZIP file from the customer's PDF data
@@ -133,26 +168,27 @@ namespace Debt_Minder___Intacct.Controllers
         [HttpPost]
         public async Task<IActionResult> EmailPdf(string customers)
         {
-            List<string> names = customers.Split(',').ToList();
-            if (names == null || names.Count < 1)
+            List<string> CustomerIds = customers.Split(',').ToList();
+            if (CustomerIds == null || CustomerIds.Count < 1)
             {
                 return BadRequest("Invalid request parameters.");
             }
 
-            List<string> docIds = GetDocIdsByCustomers(res, names);
+            List<string> docIds = GetDocIdsByCustomers(res, CustomerIds);
             RequestGenerate.GenerateXmlRequest(SessionId, docIds);
 
             List<pdfResponse.Result> pdfResults = Pdfres.Operation.Result;
             Dictionary<string, List<(byte[] PdfBytes, string DocId)>> customerPdfFiles = new Dictionary<string, List<(byte[], string)>>();
 
-            await RequestAging.CreateRequestXml(SessionId);
 
-            foreach (string customer in names)
+            foreach (string customerId in CustomerIds)
             {
-                await RequestStatement.CreateRequestXml(SessionId, customer);
+                await RequestAging.CreateRequestXml(SessionId, customerId);
+
+                await RequestStatement.CreateRequestXml(SessionId, customerId);
 
                 List<(byte[], string)> pdfList = new List<(byte[], string)>();
-                List<string> ids = GetDocIdsByCustomer(res, customer);
+                List<string> ids = GetDocIdsByCustomer(res, customerId);
 
                 var pdfDataList2 = pdfResults
                     .Where(r => r.Data?.Sodocument != null && ids.Contains(r.Data.Sodocument.Docid))
@@ -177,22 +213,22 @@ namespace Debt_Minder___Intacct.Controllers
                 }
 
                 //customerPdfFiles[customer] = pdfList;
-                byte[] customerFolder = CreateCustomerFolder(customer, pdfList);
+                byte[] customerFolder = CreateCustomerFolder(customerId, pdfList);
                 ExtractFolderFromBytes(customerFolder, @"C:\TargetFolder");
                 string reciepients = StatementRes.Operation.Result.Invoices[0].Email1;
-                DatabaseEngine.InsertEmailLog($@"C:\TargetFolder\{customer.Replace(" ", "_").Trim()}", "hm@kiteview.co.za"/*reciepients*/, "p", "Pending");
+                DatabaseEngine.InsertEmailLog($@"C:\TargetFolder\{customerId.Replace(" ", "_").Trim()}", "hm@kiteview.co.za"/*reciepients*/, "p", "Pending");
                 // send email at this point
             }
 
-            return View("EmailPreview", "EmailPreview");
-            // Create a ZIP file from the customer's PDF data
+            var redirectUrl = Url.Action("EmailPreview", "EmailPreview");
+            return Json(new { redirect = redirectUrl });            // Create a ZIP file from the customer's PDF data
             // byte[] zipData = CreateZipFile(customerPdfFiles);
             //return RedirectToAction("EmailPreview", "EmailPreview");//File(zipData, "application/zip", "Customer_Reports.zip");
         }
 
 
 
-        public byte[] CreateCustomerFolder(string CustomerName,  List<(byte[] PdfBytes, string DocId)> customerPdfFiles)
+        public byte[] CreateCustomerFolder(string CustomerId, List<(byte[] PdfBytes, string DocId)> customerPdfFiles)
         {
 
             if (customerPdfFiles == null || !customerPdfFiles.Any())
@@ -205,38 +241,38 @@ namespace Debt_Minder___Intacct.Controllers
                 using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
                 {
 
-                        string customerFolder = CustomerName.Replace(" ", "_").Trim();
-                        if (string.IsNullOrEmpty(customerFolder))
+                    string customerFolder = CustomerId.Replace(" ", "_").Trim();
+                    if (string.IsNullOrEmpty(customerFolder))
+                    {
+                        customerFolder = "Unknown_Customer_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                    }
+
+                    foreach (var (pdfBytes, docId) in customerPdfFiles)
+                    {
+                        string fileName;
+
+                        // Determine the file name based on whether it is a statement or a customer PDF
+                        if (docId == "Statement")
                         {
-                            customerFolder = "Unknown_Customer_" + Guid.NewGuid().ToString("N").Substring(0, 8);
+                            fileName = $"{customerFolder}/Statement.pdf";
+                        }
+                        else
+                        {
+                            fileName = $"{customerFolder}/{docId}.pdf";
                         }
 
-                        foreach (var (pdfBytes, docId) in customerPdfFiles)
+                        var entry = archive.CreateEntry(fileName);
+                        using (var entryStream = entry.Open())
                         {
-                            string fileName;
-
-                            // Determine the file name based on whether it is a statement or a customer PDF
-                            if (docId == "Statement")
+                            if (pdfBytes == null || pdfBytes.Length == 0)
                             {
-                                fileName = $"{customerFolder}/Statement.pdf";
-                            }
-                            else
-                            {
-                                fileName = $"{customerFolder}/{docId}.pdf";
+                                throw new InvalidOperationException($"PDF data for {fileName} is null or empty.");
                             }
 
-                            var entry = archive.CreateEntry(fileName);
-                            using (var entryStream = entry.Open())
-                            {
-                                if (pdfBytes == null || pdfBytes.Length == 0)
-                                {
-                                    throw new InvalidOperationException($"PDF data for {fileName} is null or empty.");
-                                }
-
-                                entryStream.Write(pdfBytes, 0, pdfBytes.Length);
-                            }
+                            entryStream.Write(pdfBytes, 0, pdfBytes.Length);
                         }
-                    
+                    }
+
                 }
 
                 return memoryStream.ToArray();
@@ -318,49 +354,11 @@ namespace Debt_Minder___Intacct.Controllers
         }
 
 
-
+        [HttpPost]
         public IActionResult Details(string customerName, string ColumnName)
         {
-            if (ColumnName == "Email")
-            {
-                var documents = res.Operation.Result.Data.SODocuments
-                                .Where(doc => doc.CustomerName == customerName)
-                                .Select(doc => new EmailViewModel
-                                {
-                                    CustomerName = doc.CustomerName,
-                                    Email1 = doc.EMAIL1,
-                                    Email2 = doc.EMAIL2
-                                });
+            return null;
 
-                var model = new EmailViewModel
-                {
-                    CustomerName = customerName,
-                    Email1 = documents.ElementAt(0).Email1,
-                    Email2 = documents.ElementAt(0).Email2
-                };
-                return View("Email", model);
-            }
-            else
-            {
-                var documents = res.Operation.Result.Data.SODocuments
-                                .Where(doc => doc.CustomerName == customerName)
-                                .Select(doc => new DocumentDetail
-                                {
-                                    DOCNo = doc.DOCNO, // Adjust properties as needed
-                                    DOCID = doc.DOCID,
-                                    EXTERNALREFNO = doc.EXTERNALREFNO ?? "N/A",
-                                    ORIGDOCDATE = doc.ORIGDOCDATE, // Replace with actual date prop
-                                    TotalDue = doc.TotalDue
-                                }).ToList();
-
-                var model = new CustomerDetailsViewModel
-                {
-                    CustomerName = customerName,
-                    Documents = documents
-                };
-                return View("Details", model);
-
-            }
         }
 
 
@@ -393,18 +391,18 @@ namespace Debt_Minder___Intacct.Controllers
             }
         }
 
-        public List<string> GetDocIdsByCustomers(Display.Response response, List<string> customerNames)
+        public List<string> GetDocIdsByCustomers(Display.Response response, List<string> customerIds)
         {
             return response?.Operation?.Result?.Data?.SODocuments?
-                .Where(doc => customerNames.Contains(doc.CustomerName, StringComparer.OrdinalIgnoreCase))
+                .Where(doc => customerIds.Contains(doc.CustomerId, StringComparer.OrdinalIgnoreCase))
                 .Select(doc => doc.DOCID)
                 .ToList() ?? new List<string>();
         }
 
-        public List<string> GetDocIdsByCustomer(Display.Response response, string customerName)
+        public List<string> GetDocIdsByCustomer(Display.Response response, string customerId)
         {
             return response?.Operation?.Result?.Data?.SODocuments?
-                .Where(doc => doc.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+                .Where(doc => doc.CustomerId.Equals(customerId, StringComparison.OrdinalIgnoreCase))
                 .Select(doc => doc.DOCID)
                 .ToList() ?? new List<string>();
         }
@@ -428,24 +426,24 @@ namespace Debt_Minder___Intacct.Controllers
             var statementDetails = xmlDoc.Descendants("StatementDetails").First();
 
             var mailMergeData = new Dictionary<string, string>
-    {
-        { "CUSTOMERID", customer.Element("CustomerID")?.Value },
-        { "DISPLAYPRINTAS", customer.Element("DisplayPrintAs")?.Value },
-        { "DISPLAYADDR1", customer.Element("DisplayAddr1")?.Value },
-        { "DISPLAYADDR2", customer.Element("DisplayAddr2")?.Value },
-        { "DISPLAYCITY", customer.Element("DisplayCity")?.Value },
-        { "DISPLAYSTATE", customer.Element("DisplayState")?.Value },
-        { "DISPLAYZIP", customer.Element("DisplayZip")?.Value },
-        { "STATEMENTDATE", statementDetails.Element("StatementDate")?.Value },
-        { "TotalDue", statementDetails.Element("TotalDue")?.Value },
-        {"Current", statementDetails.Element("Current")?.Value },
-        {"in1-30", statementDetails.Element("ThirtyDays")?.Value },
-        {"in31-60", statementDetails.Element("SixtyDays")?.Value },
-        {"in61-90", statementDetails.Element("NinetyDays")?.Value }
+            {
+                { "CUSTOMERID", customer.Element("CustomerID")?.Value },
+                { "DISPLAYPRINTAS", customer.Element("DisplayPrintAs")?.Value },
+                { "DISPLAYADDR1", customer.Element("DisplayAddr1")?.Value },
+                { "DISPLAYADDR2", customer.Element("DisplayAddr2")?.Value },
+                { "DISPLAYCITY", customer.Element("DisplayCity")?.Value },
+                { "DISPLAYSTATE", customer.Element("DisplayState")?.Value },
+                { "DISPLAYZIP", customer.Element("DisplayZip")?.Value },
+                { "STATEMENTDATE", statementDetails.Element("StatementDate")?.Value },
+                { "TotalDue", statementDetails.Element("TotalDue")?.Value },
+                {"Current", statementDetails.Element("Current")?.Value },
+                {"in1-30", statementDetails.Element("in1-30")?.Value },
+                {"in31-60", statementDetails.Element("in31-60")?.Value },
+                {"in61-90", statementDetails.Element("in61-90")?.Value }
 
 
 
-    };
+             };
 
             // Extract table data
             var entries = xmlDoc.Descendants("Entry").Select(entry => new Entry
@@ -458,7 +456,7 @@ namespace Debt_Minder___Intacct.Controllers
             }).ToList();
 
             // Load the Word document
-            Document doc = new Document("ar_statement_18.doc");
+            Document doc = new Document("18ar_statement.doc");
 
             // Execute mail merge for single fields
             doc.MailMerge.Execute(mailMergeData.Select(kvp => kvp.Key).ToArray(),
@@ -477,6 +475,145 @@ namespace Debt_Minder___Intacct.Controllers
                 return ms.ToArray();
             }
         }
+
+
+        //public void PopulateAdditionalDocs()
+        //{
+
+        //    DataTable dtAdditionalDocs = new DataTable();
+        //    dtAdditionalDocs = DatabaseEngine.GetAdditionalDocs();
+
+        //    string month = DateTime.Now.ToString("MMM");
+        //    string selectedfolder = (string)Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\InvoiceRun\EmailSettings", "InvoicePath", null);
+
+        //    string folderPath = $@"{selectedfolder}\{month} Invoices";
+
+
+
+        //    foreach (DataRow row in dtAdditionalDocs.Rows)
+        //    {
+        //        string Account = row["Account"].ToString();
+
+        //        string clientPath = folderPath + $@"\" + Account;
+        //        string sourcePath = row["FilePath"].ToString();
+        //        string Reference = row["Reference"].ToString();
+
+
+        //        if (Directory.Exists(clientPath))
+        //        {
+
+        //            if (row["DocType"].ToString().Trim() == "Header")
+        //            {
+
+        //                if (File.Exists(sourcePath))
+        //                {
+
+        //                    CopyFile(sourcePath, clientPath);
+
+
+        //                }
+
+        //            }
+        //            else
+        //            {
+
+        //                string InvPath = Path.Combine(clientPath, $@"{Reference.Trim()}.pdf");
+        //                string CombinePath = Path.Combine(clientPath, $@"{Reference.Trim()} + POD.pdf");
+
+        //                foreach (string ItemPath in sourcePath.Split(','))
+        //                {
+        //                    if (File.Exists(InvPath) && File.Exists(ItemPath))
+        //                    {
+        //                        if (ItemPath.Contains(".pdf"))
+        //                        {
+        //                            CombinePdfs(InvPath, ItemPath, CombinePath);
+
+        //                        }
+        //                    }
+        //                }
+
+        //            }
+
+        //        }
+        //    }
+
+
+        //}
+
+        //public static void CombinePdfs(string pdf1Path, string pdf2Path, string outputPdfPath)
+        //{
+        //    try
+        //    {
+        //        // Open the first PDF document
+        //        PdfDocument pdf1 = PdfReader.Open(pdf1Path, PdfDocumentOpenMode.Import);
+
+        //        // Open the second PDF document
+        //        PdfDocument pdf2 = PdfReader.Open(pdf2Path, PdfDocumentOpenMode.Import);
+
+        //        // Create a new PDF document to hold the combined content
+        //        PdfDocument outputPdf = new PdfDocument();
+
+        //        // Add all pages from the first PDF
+        //        for (int i = 0; i < pdf1.PageCount; i++)
+        //        {
+        //            outputPdf.AddPage(pdf1.Pages[i]);
+        //        }
+
+        //        // Add all pages from the second PDF
+        //        for (int i = 0; i < pdf2.PageCount; i++)
+        //        {
+        //            outputPdf.AddPage(pdf2.Pages[i]);
+        //        }
+
+        //        // Save the combined PDF
+        //        outputPdf.Save(outputPdfPath);
+
+        //        // Delete the first PDF file after combining
+        //        if (File.Exists(pdf1Path))
+        //        {
+        //            File.Delete(pdf1Path);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($@"An error occurred - {ex.Message}", "Error Combining files - 001", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        //    }
+        //}
+
+
+        //public static void CopyFile(string sourceFilePath, string destinationDirectory)
+        //{
+        //    try
+        //    {
+        //        // Check if source file exists
+        //        if (File.Exists(sourceFilePath))
+        //        {
+        //            // Ensure the destination directory exists
+        //            if (!Directory.Exists(destinationDirectory))
+        //            {
+        //                Directory.CreateDirectory(destinationDirectory);
+        //            }
+
+        //            // Get the file name from the source file path
+        //            string fileName = Path.GetFileName(sourceFilePath);
+
+        //            // Create the full destination file path
+        //            string destinationFilePath = Path.Combine(destinationDirectory, fileName);
+
+        //            // Copy the file to the destination
+        //            File.Copy(sourceFilePath, destinationFilePath, overwrite: true);
+
+        //            Console.WriteLine($"File copied successfully to {destinationFilePath}");
+        //        }
+
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        //Console.WriteLine($"Error copying file: {ex.Message}");
+        //        MessageBox.Show($@"An error occured - {ex.Message}", "Error Copying files - 004", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        //    }
+        //}
     }
 
 
@@ -542,11 +679,14 @@ namespace Debt_Minder___Intacct.Controllers
 
         public IMailMergeDataSource GetChildDataSource(string tableName)
         {
+
+
             return null; // No nested tables
         }
 
 
-        
+
+
 
     }
 }

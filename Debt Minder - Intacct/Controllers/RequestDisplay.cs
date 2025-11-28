@@ -164,7 +164,7 @@ namespace Debt_Minder___Intacct.Controllers
                                 Select = new Select
                                 {
                                     Field = new List<string>
-                                {
+                                {   "CUSTOMER.CUSTOMERID",
                                     "CUSTOMER.NAME",
                                     "CUSTOMER.TOTALDUE",
                                     "TOTALDUE",
