@@ -43,7 +43,7 @@ namespace Debt_Minder___Intacct.Controllers
 
         public static string SessionId = "cKJmmiycuLi2rXNH09ASANHyuLes4nCiZsdx5QsRtq1zR9PQEg-W9b62";
 
-        public async Task<IActionResult> Index2()
+        public async Task<IActionResult> Index()
         {
 
             if (res == null)

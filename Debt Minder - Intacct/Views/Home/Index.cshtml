@@ -8,27 +8,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
 
-   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/StyleIndex.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
         
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<!-- Top buttons -->
-<div class="top-section">
-    <div class="button-group">
-        <button type="button" class="btn btn-primary2" id="generatePdfBtn">Generate</button>
-        <button type="button" class="btn btn-primary2" id="EmailBtn">Generate & Email</button>
-    </div>
 
-    @* Search bar *@
-    <div class="search-container">
-        <form role="search" id="form">
-            <input type="search" id="query" name="query" placeholder="Search..." autocomplete="off">
-            <button id="searchButton" type="submit"><i class="fas fa-search"></i></button>
-        </form>
-    </div>
+    <!-- Top buttons -->
+<div class="top-section">
+	<div class="button-group">
+		<button type="button" class="btn btn-primary2" id="generatePdfBtn">Generate</button>
+		<button type="button" class="btn btn-primary2" id="EmailBtn">Generate & Email</button>
+	</div>
+
+	@* Search bar *@
+	<div class="search-container">
+		<form role="search" id="form">
+			<input type="search" id="query" name="query" placeholder="Search..." autocomplete="off">
+			<button id="searchButton" type="submit"><i class="fas fa-search"></i></button>
+		</form>
+	</div>
 </div>
 
 
@@ -77,56 +78,6 @@
 </div>
 
 
-
-
-
-
-<div style="height:20px"></div>
-
-    <!-- Background -->
-    <!-- Top buttons -->
-    <div class="p-5 mb-5 top-section">
-        <div class="d-flex justify-content-end gap-3">
-            <button type="button" class="btn btn-primary2" id="generatePdfBtn">Generate</button>
-            <button type="button" class="btn btn-primary2" id="EmailBtn">Generate & Email</button>
-        <div class="search-box">
-            <input type="text" id="Search" placeholder="Search..." />
-            <span class="search-icon">&#128269;</span>
-        </div>
-        <div class="advanced-filter-container">
-            <button class="btn-advanced-filter" data-bs-toggle="collapse" data-bs-target="#advancedFilterPanel">
-                🔍 Advanced Filters
-            </button>
-
-            <div id="advancedFilterPanel" class="collapse advanced-filter-panel mt-3">
-                <div class="filter-row">
-                    <label for="filterCustomer">Customer</label>
-                    <input type="text" id="filterCustomer" class="form-control" placeholder="Enter customer name">
-                </div>
-
-                <div class="filter-row">
-                    <label for="filterStatus">Status</label>
-                    <select id="filterStatus" class="form-control">
-                        <option value="">-- Select Status --</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Suspended">Suspended</option>
-                    </select>
-                </div>
-
-                <div class="filter-row">
-                    <label for="filterDate">Created Date</label>
-                    <input type="date" id="filterDate" class="form-control">
-                </div>
-
-                <button class="btn-apply-filter mt-3">Apply Filters</button>
-            </div>
-        </div>
-
-
-        </div>
-    </div>
-
 <!-- HEADER BAR OUTSIDE THE TABLE -->
 <div class="table-header-bar">
     <div class="col checkbox-col">Select</div>
@@ -141,53 +92,53 @@
     <div class="col">Action</div>
 </div>
 
-
-    <!-- Table container with blur effect -->
+    <!-- Table container -->
     <div class="grid-container">
         <div class="container-fluid2">
 
             <div class="table-container2 blurred-table">
                 <table class="table table-striped table-bordered table-hover">
-@*                     <thead class="table-dark">
-                        <tr>
-                            <th class="checkbox-col">Select</th>
-                            <th>Customer Id</th>
-                            <th>Customer Name</th>
-                            <th>Total Due</th>
-                            <th>Doc Total</th>
-                            <th>No. Docs</th>
-                            <th>Docs</th>
-                            <th>Email</th>
-                            <th>Contacted</th>
-                            <th>Action</th>
+
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="row-normal" data-customer-name="@item.CustomerId">
+                            <td class="checkbox-col"><input type="checkbox" class="customer-checkbox" value="@item.CustomerId" /></td>
+                            <td>@item.CustomerId</td>
+                            <td>@item.CustomerName</td>
+                            <td>@item.TotalDue.ToString("C")</td>
+                            <td>@item.DocTotal.ToString("C")</td>
+                            <td>@item.NoDocs</td>
+                            <td>...</td>
+                            <td>...</td>
+                            <td>@item.Contacted</td>
+                            <td>@item.Action</td>
                         </tr>
-                    </thead> *@
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr class="@item.RowClass" data-customer-name="@item.CustomerId">
-                                <td class="checkbox-col">
-                                    <input type="checkbox" class="customer-checkbox" value="@item.CustomerId" />
-                                </td>
-                                <td>@item.CustomerId</td>
-                                <td>@item.CustomerName</td>
-                                <td>@item.TotalDue.ToString("C")</td>
-                                <td>@item.DocTotal.ToString("C")</td>
-                                <td>@item.NoDocs</td>
-                                <td>...</td>
-                                <td>...</td>
-                                <td>@item.Contacted</td>
-                                <td>@item.Action</td>
-                            </tr>
-                        }
-                    </tbody>
+                    }
+                </tbody>
                 </table>
             </div>
+
         </div>
     </div>
 
 
 <script>
+
+
+    // To highlight checked rows in table
+    $(document).on("change", ".customer-checkbox", function () {
+        const row = $(this).closest("tr");
+
+        if (this.checked) {
+            row.addClass("highlight-row");
+        } else {
+            row.removeClass("highlight-row");
+        }
+    });
+
+
     $(document).ready(function ()
     {
             $('table tbody tr').each(function (index)
@@ -280,10 +231,10 @@
             {
                 return;
             }
-            var customerName = $(this).data("customer-name");
-            var columnIndex = $(e.target).index();
-            var columnName = $("thead th").eq(columnIndex).text().trim();
-            if (customerName && columnName)
+    var customerName = $(this).closest("tr").data("customer-name");
+                var columnIndex = $(e.target).index();
+    var columnName = $(".table-header-bar .col").eq(columnIndex).text().trim();
+                if (customerName && columnName)
             {
                 if (columnName === "Contacted") {
                     // Dynamically create and submit a form
@@ -373,4 +324,81 @@
             }
             });
     });
+
+
+        
+
+    // ---------------------------------------------
+    // Helpers: update table height using expected
+    // ---------------------------------------------
+    function updateTableHeight(expectedFilterPanelHeight) {
+        const navbar = document.querySelector('.navbar');
+        const topSection = document.querySelector('.top-section');
+        const tableHeader = document.querySelector('.table-header-bar');
+        const tableContainer = document.querySelector('.table-container2');
+
+        const navbarHeight = navbar?.offsetHeight || 0;
+        const topHeight = topSection?.offsetHeight || 0;
+        const tableHeaderHeight = tableHeader?.offsetHeight || 0;
+        const filterHeight = (typeof expectedFilterPanelHeight === 'number')
+            ? expectedFilterPanelHeight
+            : (document.querySelector('.filter-panel')?.offsetHeight || 0);
+
+        const totalOffset = navbarHeight + topHeight + filterHeight + tableHeaderHeight + 15;   
+        document.querySelector('.table-container2').style.maxHeight = `calc(100vh - ${totalOffset}px)`;
+    }
+
+    // ---------------------------------------------
+    // Toggle filters: deterministic expected heights
+    // ---------------------------------------------
+    function toggleFilters() {
+        const filterPanel = document.querySelector('.filter-panel');
+        const filterHeader = filterPanel.querySelector('.filter-header');
+        const filterContent = document.getElementById('filterContent');
+        const arrow = document.getElementById('filterArrow');
+
+        const headerHeight = filterHeader?.offsetHeight || 0;
+        const isOpen = filterContent.clientHeight > 0;
+
+        if (isOpen) {
+            // COLLAPSE: expected panel height becomes headerHeight
+            filterContent.style.maxHeight = "0px";
+            arrow.style.transform = "rotate(0deg)";
+
+            // wait for the browser to process the style change, then compute
+            requestAnimationFrame(() => {
+                // second rAF is robust cross-browser
+                requestAnimationFrame(() => {
+                    const expectedPanelHeight = headerHeight;
+                    updateTableHeight(expectedPanelHeight);
+                });
+            });
+
+        } else {
+            // EXPAND: expected panel height = header + content
+            const contentH = filterContent.scrollHeight;
+            filterContent.style.maxHeight = contentH + "px";
+            arrow.style.transform = "rotate(180deg)";
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const expectedPanelHeight = headerHeight + contentH;
+                    updateTableHeight(expectedPanelHeight);
+                });
+            });
+        }
+    }
+
+    // ---------------------------------------------
+    // Init + resize
+    // ---------------------------------------------
+    updateTableHeight(); // initial
+    window.addEventListener('resize', () => {
+        // Recompute based on current DOM; prefer to pass undefined so update reads actual.
+        updateTableHeight();
+    });
+
+
+
+
 </script>
